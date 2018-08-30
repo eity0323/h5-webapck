@@ -63,8 +63,25 @@ const webpackConfig = merge(baseWebpackConfig, {
     // see https://github.com/ampedandwired/html-webpack-plugin
     new HtmlWebpackPlugin({
       filename: config.build.index,
-      template: 'src/index.html',
+      template: 'src/view/index.html',
       inject: true,
+      chunks:['manifest','vendor','main'],
+      minify: {
+        removeComments: true,
+        collapseWhitespace: true,
+        removeAttributeQuotes: true
+        // more options:
+        // https://github.com/kangax/html-minifier#options-quick-reference
+      },
+      // necessary to consistently work with multiple chunks via CommonsChunkPlugin
+      chunksSortMode: 'dependency'
+    }),
+
+    new HtmlWebpackPlugin({
+      filename: 'test.html',
+      template: 'src/view/test.html',
+      inject: true,
+      chunks:['manifest','vendor','testPage'],//多页面一定要设置需要加载的js，否则会默认全部引入
       minify: {
         removeComments: true,
         collapseWhitespace: true,

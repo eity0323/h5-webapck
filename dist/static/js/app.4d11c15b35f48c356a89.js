@@ -1,2 +1,0 @@
-webpackJsonp([0],{I0wj:function(e,n){},NHnr:function(e,n,o){"use strict";Object.defineProperty(n,"__esModule",{value:!0});o("I0wj");var t="aaa",a=function(){alert("hi")};console.log(t),a()}},["NHnr"]);
-//# sourceMappingURL=app.4d11c15b35f48c356a89.js.map
