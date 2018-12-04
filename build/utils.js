@@ -4,16 +4,26 @@ const config = require('../config')
 const ExtractTextPlugin = require('extract-text-webpack-plugin')
 const packageConfig = require('../package.json')
 
-exports.assetsPath = function (_path) {
-  const assetsSubDirectory = process.env.NODE_ENV === 'production'
-    ? config.build.assetsSubDirectory
-    : config.dev.assetsSubDirectory
-    
+// glob是webpack安装时依赖的一个第三方模块，还模块允许你使用 *等符号, 例如lib/*.js就是获取lib文件夹下的所有js后缀名的文件
+var glob = require('glob')
+// 页面模板
+var HtmlWebpackPlugin = require('html-webpack-plugin')
+// 取得相应的页面路径，因为之前的配置，所以是src文件夹下的pages文件夹
+var PAGE_PATH = path.resolve(__dirname, '../src/view')
+var ENTRY_PATH = path.resolve(__dirname, '../src/controller')
+// 用于做相应的merge处理
+var merge = require('webpack-merge')
+
+exports.assetsPath = function(_path) {
+  const assetsSubDirectory =
+    process.env.NODE_ENV === 'production'
+      ? config.build.assetsSubDirectory
+      : config.dev.assetsSubDirectory
 
   return path.posix.join(assetsSubDirectory, _path)
 }
 
-exports.cssLoaders = function (options) {
+exports.cssLoaders = function(options) {
   options = options || {}
 
   const cssLoader = {
@@ -31,8 +41,10 @@ exports.cssLoaders = function (options) {
   }
 
   // generate loader string to be used with extract text plugin
-  function generateLoaders (loader, loaderOptions) {
-    const loaders = options.usePostCSS ? [cssLoader, postcssLoader] : [cssLoader]
+  function generateLoaders(loader, loaderOptions) {
+    const loaders = options.usePostCSS
+      ? [cssLoader, postcssLoader]
+      : [cssLoader]
 
     if (loader) {
       loaders.push({
@@ -57,7 +69,7 @@ exports.cssLoaders = function (options) {
       return ExtractTextPlugin.extract({
         use: loaders,
         fallback: 'style-loader',
-        publicPath:'../../'
+        publicPath: '../../'
       })
     } else {
       return ['style-loader'].concat(loaders)
@@ -68,7 +80,7 @@ exports.cssLoaders = function (options) {
   return {
     css: generateLoaders(),
     postcss: generateLoaders(),
-    less: generateLoaders('less'),
+    less: generateLoaders('less')
     // sass: generateLoaders('sass', { indentedSyntax: true }),
     // scss: generateLoaders('sass'),
     // stylus: generateLoaders('stylus'),
@@ -77,7 +89,7 @@ exports.cssLoaders = function (options) {
 }
 
 // Generate loaders for standalone style files (outside of .vue)
-exports.styleLoaders = function (options) {
+exports.styleLoaders = function(options) {
   const output = []
   const loaders = exports.cssLoaders(options)
 
@@ -108,4 +120,55 @@ exports.createNotifierCallback = () => {
       icon: path.join(__dirname, 'logo.png')
     })
   }
+}
+
+//多入口配置
+// 通过glob模块读取pages文件夹下的所有对应文件夹下的js后缀文件，如果该文件存在
+// 那么就作为入口处理
+exports.entries = function() {
+  var entryFiles = glob.sync(ENTRY_PATH + '/*.js')
+  var map = {}
+  entryFiles.forEach(filePath => {
+    var filename = filePath.substring(
+      filePath.lastIndexOf('/') + 1,
+      filePath.lastIndexOf('.')
+    )
+    map[filename] = filePath
+  })
+  return map
+}
+
+//多页面输出配置
+// 与上面的多页面入口配置相同，读取pages文件夹下的对应的html后缀文件，然后放入数组中
+exports.htmlPlugin = function() {
+  let entryHtml = glob.sync(PAGE_PATH + '/*.html')
+  let arr = []
+  entryHtml.forEach(filePath => {
+    let filename = filePath.substring(
+      filePath.lastIndexOf('/') + 1,
+      filePath.lastIndexOf('.')
+    )
+    console.log(filename)
+    let conf = {
+      // 模板来源
+      template: filePath,
+      // 文件名称
+      filename: filename + '.html',
+      // 页面模板需要加对应的js脚本，如果不加这行则每个页面都会引入所有的js脚本
+      chunks: [filename, 'manifest', 'vendor'],
+      inject: true
+    }
+    if (process.env.NODE_ENV === 'production') {
+      conf = merge(conf, {
+        minify: {
+          removeComments: true,
+          collapseWhitespace: true,
+          removeAttributeQuotes: true
+        },
+        chunksSortMode: 'dependency'
+      })
+    }
+    arr.push(new HtmlWebpackPlugin(conf))
+  })
+  return arr
 }
